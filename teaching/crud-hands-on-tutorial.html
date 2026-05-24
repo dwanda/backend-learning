@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>手把手教你用 Spring Boot 开发一个 CRUD 应用</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --green: #3fb950;
+    --orange: #d2991d;
+    --red: #f85149;
+    --purple: #a371f7;
+    --code-bg: #1c2128;
+    --heading: #f0f6fc;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+  h1 { color: var(--heading); font-size: 2.2em; margin-bottom: 8px; border-bottom: 2px solid var(--border); padding-bottom: 16px; }
+  h2 { color: var(--heading); font-size: 1.5em; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h3 { color: var(--accent); font-size: 1.15em; margin: 32px 0 12px; }
+  h4 { color: var(--heading); font-size: 1em; margin: 24px 0 8px; }
+  p { margin: 12px 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  ul, ol { padding-left: 24px; margin: 12px 0; }
+  li { margin: 6px 0; }
+
+  /* 提示框 */
+  .tip, .warning, .checkpoint {
+    border-left: 4px solid;
+    padding: 12px 16px;
+    margin: 20px 0;
+    border-radius: 0 6px 6px 0;
+    background: var(--surface);
+  }
+  .tip       { border-color: var(--accent); }
+  .warning   { border-color: var(--orange); }
+  .checkpoint { border-color: var(--green); }
+  .tip::before       { content: "💡 提示："; color: var(--accent); font-weight: bold; }
+  .warning::before   { content: "⚠️ 注意："; color: var(--orange); font-weight: bold; }
+  .checkpoint::before { content: "✅ 检查点："; color: var(--green); font-weight: bold; }
+
+  /* 代码块 */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 16px 0;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  code {
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    font-size: 13px;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+  }
+
+  /* 关键字高亮 */
+  .kw  { color: var(--red); }       /* 关键字 */
+  .str { color: var(--green); }     /* 字符串 */
+  .cm  { color: var(--text-muted); }/* 注释 */
+  .an  { color: var(--purple); }    /* 注解 */
+  .fn  { color: var(--accent); }    /* 方法 */
+  .num { color: var(--orange); }    /* 数字 */
+
+  /* 表格 */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { padding: 10px 14px; border: 1px solid var(--border); text-align: left; }
+  th { background: var(--surface); color: var(--heading); font-weight: 600; }
+  tr:nth-child(even) { background: var(--surface); }
+
+  /* 步骤编号 */
+  .step {
+    display: inline-block;
+    background: var(--accent-dim);
+    color: #fff;
+    width: 28px; height: 28px;
+    text-align: center; line-height: 28px;
+    border-radius: 50%;
+    margin-right: 8px;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .file-path {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    font-family: monospace;
+  }
+  .file-path::before { content: "📄 "; }
+
+  /* 导航 */
+  nav { margin: 24px 0; }
+  nav ol { list-style: none; padding: 0; }
+  nav li { margin: 4px 0; }
+  nav a { color: var(--accent); }
+
+  /* 分隔线 */
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+  .tag-must   { background: #da363333; color: var(--red); }
+  .tag-skip   { background: #8b949e22; color: var(--text-muted); }
+  .tag-spring { background: #3fb95022; color: var(--green); }
+</style>
+</head>
+<body>
+
+<h1>🚀 手把手教你用 Spring Boot 开发一个 CRUD 应用</h1>
+
+<p>
+  本教程专为<strong>前端开发者</strong>设计——你已经有编程基础，只需要补齐后端这一块。
+  我们将从零开始，一步步搭建一个完整的 <strong>用户管理 CRUD</strong> 项目。
+</p>
+
+<p>
+  <strong>学完之后你能做什么：</strong>独立搭建 Spring Boot 项目，连接 MySQL 数据库，写出完整的 RESTful CRUD API。
+  这就像前端学会了"搭项目 → 写组件 → 调接口"一样，是后端开发的<strong>驾照</strong>。
+</p>
+
+<hr>
+
+<nav>
+  <h3>📋 目录</h3>
+  <ol>
+    <li><a href="#s1">环境准备 —— 安装 JDK 21 + Maven + IDEA + MySQL</a></li>
+    <li><a href="#s2">创建 Spring Boot 项目</a></li>
+    <li><a href="#s3">项目结构解析 —— 每个文件是干什么的</a></li>
+    <li><a href="#s4">配置 MySQL 数据库连接</a></li>
+    <li><a href="#s5">创建数据实体 Entity —— 定义数据库表</a></li>
+    <li><a href="#s6">创建 Repository —— 零 SQL 操作数据库</a></li>
+    <li><a href="#s7">创建 Service —— 业务逻辑层</a></li>
+    <li><a href="#s8">统一的返回格式 —— R&lt;T&gt; 包装类</a></li>
+    <li><a href="#s9">创建 Controller —— REST API 接口</a></li>
+    <li><a href="#s10">统一异常处理 —— @RestControllerAdvice</a></li>
+    <li><a href="#s11">参数校验 —— @Valid + Bean Validation</a></li>
+    <li><a href="#s12">分页查询</a></li>
+    <li><a href="#s13">启动 &amp; 测试 —— 用 curl 验证所有接口</a></li>
+    <li><a href="#s14">完整项目结构总览</a></li>
+  </ol>
+</nav>
+
+<hr>
+
+<!-- ==================== S1 ==================== -->
+<h2 id="s1"><span class="step">1</span>环境准备</h2>
+
+<p>你需要安装以下工具。如果你已经安装了某样，跳过即可。</p>
+
+<h3>1.1 JDK 21（Java 开发工具包）</h3>
+<ul>
+  <li><strong>macOS：</strong><code>brew install openjdk@21</code></li>
+  <li><strong>Windows：</strong>去 <a href="https://adoptium.net">Adoptium</a> 下载 JDK 21 的 msi 安装包</li>
+  <li>安装完成后，打开终端验证：</li>
+</ul>
+<pre><code>java -version
+# 应输出类似：openjdk version "21.0.x" ...
+javac -version
+# 应输出类似：javac 21.0.x</code></pre>
+
+<h3>1.2 Maven（构建工具）</h3>
+<ul>
+  <li><strong>macOS：</strong><code>brew install maven</code></li>
+  <li><strong>Windows：</strong>去 <a href="https://maven.apache.org/download.cgi">Maven 官网</a> 下载 zip，解压后把 <code>bin/</code> 加到 PATH</li>
+  <li>验证：</li>
+</ul>
+<pre><code>mvn --version
+# 应输出 Maven 版本 + Java 版本信息</code></pre>
+
+<h3>1.3 IntelliJ IDEA（开发工具）</h3>
+<p>
+  下载 <a href="https://www.jetbrains.com/idea/download/">IntelliJ IDEA Community Edition</a>（免费版足够）。
+  VS Code 写 Java 体验不好，<strong>强烈建议用 IDEA</strong>。
+</p>
+
+<h3>1.4 MySQL 8.0（数据库）</h3>
+<ul>
+  <li><strong>macOS：</strong><code>brew install mysql@8.0</code>，然后 <code>brew services start mysql@8.0</code></li>
+  <li><strong>Windows：</strong>去 <a href="https://dev.mysql.com/downloads/installer/">MySQL 官网</a> 下载安装器</li>
+  <li><strong>或者用 Docker（推荐）：</strong></li>
+</ul>
+<pre><code>docker run -d --name mysql-learning \
+  -e MYSQL_ROOT_PASSWORD=root123 \
+  -e MYSQL_DATABASE=learning \
+  -p 3306:3306 \
+  mysql:8.0</code></pre>
+
+<div class="tip">
+  如果用 Docker 装 MySQL，无需本地安装，一行命令即可。这也是后端开发最常用的方式。
+</div>
+
+<div class="checkpoint">
+  确认四样都已装好并可用：<code>java -version</code>、<code>mvn --version</code>、IDEA 能打开、MySQL 能连接。
+</div>
+
+<hr>
+
+<!-- ==================== S2 ==================== -->
+<h2 id="s2"><span class="step">2</span>创建 Spring Boot 项目</h2>
+
+<h3>2.1 用 Spring Initializr 生成项目</h3>
+
+<ol>
+  <li>打开浏览器访问 <a href="https://start.spring.io" target="_blank">https://start.spring.io</a></li>
+  <li>按以下配置填写：</li>
+</ol>
+
+<table>
+  <tr><th>选项</th><th>值</th><th>说明</th></tr>
+  <tr><td>Project</td><td><strong>Maven</strong></td><td>构建工具</td></tr>
+  <tr><td>Language</td><td><strong>Java</strong></td><td>开发语言</td></tr>
+  <tr><td>Spring Boot</td><td><strong>3.4.x</strong></td><td>选最新的 3.4 稳定版</td></tr>
+  <tr><td>Group</td><td><strong>com.example</strong></td><td>包名前缀（和前端 npm scope 类似）</td></tr>
+  <tr><td>Artifact</td><td><strong>demo</strong></td><td>项目名</td></tr>
+  <tr><td>Java</td><td><strong>21</strong></td><td>Java 版本</td></tr>
+</table>
+
+<p>然后在右侧 <strong>Dependencies</strong> 区域点击 <strong>Add Dependencies</strong>，搜索并添加以下依赖：</p>
+
+<table>
+  <tr><th>依赖名</th><th>作用（类比前端）</th></tr>
+  <tr><td><strong>Spring Web</strong></td><td>内嵌 Tomcat 服务器，支持写 REST API（类比 Express.js）</td></tr>
+  <tr><td><strong>Spring Data JPA</strong></td><td>ORM 框架，用 Java 对象操作数据库（类比 Prisma / Sequelize）</td></tr>
+  <tr><td><strong>MySQL Driver</strong></td><td>MySQL 的 JDBC 驱动，让 Java 能连接 MySQL</td></tr>
+  <tr><td><strong>Lombok</strong></td><td>减少样板代码（用注解自动生成 getter/setter/构造器）</td></tr>
+  <tr><td><strong>Spring Boot Actuator</strong></td><td>健康检查 + 监控端点（可选，建议加）</td></tr>
+  <tr><td><strong>Validation</strong></td><td>参数校验（Bean Validation，类比前端表单校验）</td></tr>
+</table>
+
+<p>点击 <strong>Generate</strong> 按钮，会下载一个 <code>demo.zip</code> 文件。</p>
+
+<h3>2.2 解压并用 IDEA 打开</h3>
+<ol>
+  <li>解压 <code>demo.zip</code> 到你要放项目的目录</li>
+  <li>打开 IDEA → <strong>Open</strong> → 选择解压后的 <code>demo/</code> 文件夹</li>
+  <li>IDEA 会自动识别为 Maven 项目，右下角会提示下载依赖，点击 <strong>Load Maven Changes</strong></li>
+</ol>
+
+<div class="tip">
+  第一次打开 Maven 项目时，IDEA 会从中央仓库下载依赖 jar 包，可能需要几分钟（和前端 <code>npm install</code> 一样）。
+  等待右下角进度条跑完即可。
+</div>
+
+<div class="checkpoint">
+  项目能正常打开，<code>pom.xml</code> 没有报错，左侧项目树能看到标准的 Maven 目录结构。
+</div>
+
+<hr>
+
+<!-- ==================== S3 ==================== -->
+<h2 id="s3"><span class="step">3</span>项目结构解析</h2>
+
+<p>打开项目后，你会看到这样的目录结构：</p>
+
+<pre><code>demo/
+├── pom.xml                      ← "package.json" —— 依赖和构建配置
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/example/demo/
+│   │   │       └── DemoApplication.java   ← "index.js" —— 程序入口
+│   │   └── resources/
+│   │       ├── application.properties    ← 配置文件（我们会改成 .yml）
+│   │       ├── static/                  ← 静态资源（和 public/ 一样）
+│   │       └── templates/               ← 模板文件（前后端分离时用不到）
+│   └── test/
+│       └── java/com/example/demo/
+│           └── DemoApplicationTests.java  ← 测试文件
+└── mvnw / mvnw.cmd              ← Maven Wrapper（不用装 Maven 也能构建）</code></pre>
+
+<h3>关键文件说明</h3>
+
+<h4><code>pom.xml</code> —— 项目核心配置</h4>
+<p>相当于前端的 <code>package.json</code>。打开看一眼，重点关注：</p>
+<ul>
+  <li><code>&lt;parent&gt;</code>：继承自 Spring Boot 3.4 的父 POM，统一管理依赖版本</li>
+  <li><code>&lt;dependencies&gt;</code>：你在 Initializr 上选的那些依赖都在这里</li>
+  <li><code>&lt;build&gt;</code>：构建插件配置</li>
+</ul>
+
+<h4><code>DemoApplication.java</code> —— 程序入口</h4>
+<pre><code><span class="kw">package</span> com.example.demo;
+
+<span class="kw">import</span> org.springframework.boot.SpringApplication;
+<span class="kw">import</span> org.springframework.boot.autoconfigure.SpringBootApplication;
+
+<span class="an">@SpringBootApplication</span>
+<span class="kw">public class</span> DemoApplication {
+    <span class="kw">public static void</span> <span class="fn">main</span>(String[] args) {
+        SpringApplication.<span class="fn">run</span>(DemoApplication.class, args);
+    }
+}</code></pre>
+<ul>
+  <li><code>@SpringBootApplication</code>：这是一个"组合注解"，= <code>@Configuration</code> + <code>@EnableAutoConfiguration</code> + <code>@ComponentScan</code></li>
+  <li><code>SpringApplication.run()</code>：启动整个 Spring Boot 应用</li>
+</ul>
+
+<div class="tip">
+  对于初学者，你只需要知道：这个 <code>main</code> 方法就是"启动按钮"。IDEA 里点它左边的绿色 ▶ 就能启动服务。
+</div>
+
+<hr>
+
+<!-- ==================== S4 ==================== -->
+<h2 id="s4"><span class="step">4</span>配置 MySQL 数据库连接</h2>
+
+<h3>4.1 改配置文件格式</h3>
+<p>把 <code>src/main/resources/application.properties</code> <strong>重命名</strong>为 <code>application.yml</code>（YAML 语法更清晰，是 Spring Boot 项目的事实标准）。</p>
+
+<h3>4.2 写入 MySQL 连接配置</h3>
+
+<p class="file-path">src/main/resources/application.yml</p>
+<pre><code><span class="kw">spring:</span>
+  <span class="kw">datasource:</span>
+    url: jdbc:mysql://localhost:3306/learning?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC
+    username: root
+    password: root123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  <span class="kw">jpa:</span>
+    hibernate:
+      ddl-auto: update       <span class="cm"># 自动根据 Entity 创建/更新表结构（开发用，生产不要用）</span>
+    show-sql: true           <span class="cm"># 控制台打印 SQL，方便调试</span>
+    properties:
+      hibernate:
+        format_sql: true     <span class="cm"># 格式化 SQL 输出</span>
+        dialect: org.hibernate.dialect.MySQLDialect
+
+<span class="kw">server:</span>
+  port: 8080                  <span class="cm"># 服务端口</span></code></pre>
+
+<div class="tip">
+  <code>ddl-auto: update</code> 会根据你的 Entity 类自动建表/加字段，省去了手写 DDL 的麻烦。<br>
+  <strong>但注意：</strong>它不会删字段，也不会删表。生产环境应该设为 <code>validate</code> 或 <code>none</code>，用 Flyway 管理表结构变更。
+</div>
+
+<h3>4.3 创建数据库</h3>
+<p>配置里写的是连接 <code>learning</code> 库，所以需要先在 MySQL 里创建这个库：</p>
+<pre><code><span class="cm"># 连接 MySQL（Docker 方式）</span>
+docker exec -it mysql-learning mysql -uroot -proot123
+
+<span class="cm"># 进入 MySQL 命令行后</span>
+<span class="kw">CREATE DATABASE</span> learning <span class="kw">DEFAULT CHARACTER SET</span> utf8mb4;
+<span class="kw">SHOW DATABASES</span>;  <span class="cm">-- 确认 learning 库出现了</span></code></pre>
+
+<div class="checkpoint">
+  启动应用（点 IDEA 里的绿色 ▶ 或运行 <code>mvn spring-boot:run</code>），控制台没有报数据库连接错误，看到 <code>Started DemoApplication</code> 就说明成功了。
+</div>
+
+<hr>
+
+<!-- ==================== S5 ==================== -->
+<h2 id="s5"><span class="step">5</span>创建数据实体 Entity</h2>
+
+<p>
+  <strong>Entity = 数据库表对应的 Java 类。</strong>
+  一个 Entity 实例 = 表中的一行数据。
+  通过 JPA 注解，你可以告诉 Spring Boot 这个类对应哪张表、字段对应哪些列。
+</p>
+
+<p>在 IDEA 中创建新包 <code>com.example.demo.entity</code>，然后创建 <code>User.java</code>：</p>
+
+<p class="file-path">src/main/java/com/example/demo/entity/User.java</p>
+<pre><code><span class="kw">package</span> com.example.demo.entity;
+
+<span class="kw">import</span> jakarta.persistence.*;
+<span class="kw">import</span> lombok.*;
+<span class="kw">import</span> java.time.LocalDateTime;
+
+<span class="an">@Entity</span>                    <span class="cm">// 标记这是一个 JPA 实体</span>
+<span class="an">@Table</span>(name = <span class="str">"users"</span>)     <span class="cm">// 对应数据库中的 users 表</span>
+<span class="an">@Data</span>                      <span class="cm">// Lombok：自动生成 getter/setter/toString/hashCode/equals</span>
+<span class="an">@NoArgsConstructor</span>         <span class="cm">// 无参构造器（JPA 需要）</span>
+<span class="an">@AllArgsConstructor</span>        <span class="cm">// 全参构造器（方便创建对象）</span>
+<span class="an">@Builder</span>                   <span class="cm">// Builder 模式</span>
+<span class="kw">public class</span> User {
+
+    <span class="an">@Id</span>                      <span class="cm">// 主键</span>
+    <span class="an">@GeneratedValue</span>(strategy = GenerationType.<span class="kw">IDENTITY</span>)  <span class="cm">// 自增</span>
+    <span class="kw">private</span> Long id;
+
+    <span class="an">@Column</span>(nullable = <span class="kw">false</span>, length = 50)
+    <span class="kw">private</span> String username;
+
+    <span class="an">@Column</span>(nullable = <span class="kw">false</span>, unique = <span class="kw">true</span>, length = 100)
+    <span class="kw">private</span> String email;
+
+    <span class="an">@Column</span>(name = <span class="str">"phone_number"</span>, length = 20)  <span class="cm">// 指定列名（Java 驼峰 → DB 下划线）</span>
+    <span class="kw">private</span> String phoneNumber;
+
+    <span class="an">@Column</span>(nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> Integer age;
+
+    <span class="an">@Column</span>(name = <span class="str">"created_at"</span>, updatable = <span class="kw">false</span>)
+    <span class="kw">private</span> LocalDateTime createdAt;
+
+    <span class="an">@Column</span>(name = <span class="str">"updated_at"</span>)
+    <span class="kw">private</span> LocalDateTime updatedAt;
+
+    <span class="cm">// 新增前自动设置创建时间</span>
+    <span class="an">@PrePersist</span>
+    <span class="kw">protected void</span> <span class="fn">onCreate</span>() {
+        createdAt = LocalDateTime.<span class="fn">now</span>();
+        updatedAt = LocalDateTime.<span class="fn">now</span>();
+    }
+
+    <span class="cm">// 更新前自动刷新更新时间</span>
+    <span class="an">@PreUpdate</span>
+    <span class="kw">protected void</span> <span class="fn">onUpdate</span>() {
+        updatedAt = LocalDateTime.<span class="fn">now</span>();
+    }
+}</code></pre>
+
+<h3>注解速查表</h3>
+<table>
+  <tr><th>JPA 注解</th><th>作用</th></tr>
+  <tr><td><code>@Entity</code></td><td>告诉 JPA：这是个实体类，要映射到数据库表</td></tr>
+  <tr><td><code>@Table(name="xxx")</code></td><td>指定表名，不写默认用类名转下划线</td></tr>
+  <tr><td><code>@Id</code></td><td>标记主键字段</td></tr>
+  <tr><td><code>@GeneratedValue</code></td><td>主键生成策略，<code>IDENTITY</code> = 自增</td></tr>
+  <tr><td><code>@Column</code></td><td>配置列属性（长度、非空、唯一等）</td></tr>
+  <tr><td><code>@PrePersist</code></td><td>在 insert 之前自动执行的方法</td></tr>
+  <tr><td><code>@PreUpdate</code></td><td>在 update 之前自动执行的方法</td></tr>
+</table>
+
+<table>
+  <tr><th>Lombok 注解</th><th>自动生成什么</th></tr>
+  <tr><td><code>@Data</code></td><td>getter + setter + toString + equals + hashCode</td></tr>
+  <tr><td><code>@NoArgsConstructor</code></td><td>无参构造器（JPA 的硬性要求）</td></tr>
+  <tr><td><code>@AllArgsConstructor</code></td><td>包含所有字段的构造器</td></tr>
+  <tr><td><code>@Builder</code></td><td>Builder 模式，方便构造对象</td></tr>
+</table>
+
+<div class="tip">
+  Lombok 让你不用手写 getter/setter/构造器。IDEA 需要装 <strong>Lombok 插件</strong>：
+  Preferences → Plugins → 搜索 "Lombok" → Install。<br>
+  另外还需要在 Settings → Build → Compiler → Annotation Processors 里勾选 <strong>Enable annotation processing</strong>。
+</div>
+
+<hr>
+
+<!-- ==================== S6 ==================== -->
+<h2 id="s6"><span class="step">6</span>创建 Repository —— 零 SQL 操作数据库</h2>
+
+<p>
+  <strong>Repository = 数据访问层。</strong>
+  Spring Data JPA 提供了强大到不可思议的 Repository 接口：你只需要定义一个接口并继承它，CRUD 方法就已经自动生成了。
+</p>
+
+<p>创建包 <code>com.example.demo.repository</code>，然后创建 <code>UserRepository.java</code>：</p>
+
+<p class="file-path">src/main/java/com/example/demo/repository/UserRepository.java</p>
+<pre><code><span class="kw">package</span> com.example.demo.repository;
+
+<span class="kw">import</span> com.example.demo.entity.User;
+<span class="kw">import</span> org.springframework.data.jpa.repository.JpaRepository;
+<span class="kw">import</span> org.springframework.stereotype.Repository;
+
+<span class="kw">import</span> java.util.Optional;
+
+<span class="an">@Repository</span>
+<span class="kw">public interface</span> UserRepository <span class="kw">extends</span> JpaRepository&lt;User, Long&gt; {
+
+    <span class="cm">// JpaRepository 自带以下方法，你不用写一行代码：</span>
+    <span class="cm">//   save(user)      → 新增/更新</span>
+    <span class="cm">//   findById(id)    → 按主键查询</span>
+    <span class="cm">//   findAll()       → 查全部</span>
+    <span class="cm">//   deleteById(id)  → 按主键删除</span>
+    <span class="cm">//   count()         → 总数</span>
+    <span class="cm">//   existsById(id)  → 是否存在</span>
+
+    <span class="cm">// 你只需要声明自定义的查询方法，JPA 会根据方法名自动生成 SQL！</span>
+    <span class="kw">boolean</span> <span class="fn">existsByEmail</span>(String email);
+
+    <span class="kw">boolean</span> <span class="fn">existsByUsername</span>(String username);
+
+    Optional&lt;User&gt; <span class="fn">findByEmail</span>(String email);
+}</code></pre>
+
+<h3>这是什么魔法？</h3>
+<p>
+  <code>JpaRepository&lt;User, Long&gt;</code> 的两个泛型参数：
+  <code>User</code> = 实体类，<code>Long</code> = 主键类型。
+</p>
+<p>
+  <strong>方法命名规则</strong>（Spring Data JPA 的核心魔法）：
+  <code>existsByEmail(String email)</code> → JPA 自动生成 SQL：<code>SELECT COUNT(*) FROM users WHERE email = ?</code>
+</p>
+
+<table>
+  <tr><th>方法名前缀</th><th>SQL 操作</th><th>示例</th></tr>
+  <tr><td><code>findBy</code></td><td>SELECT</td><td><code>findByUsername</code></td></tr>
+  <tr><td><code>existsBy</code></td><td>SELECT COUNT</td><td><code>existsByEmail</code></td></tr>
+  <tr><td><code>countBy</code></td><td>SELECT COUNT</td><td><code>countByAgeGreaterThan</code></td></tr>
+  <tr><td><code>deleteBy</code></td><td>DELETE</td><td><code>deleteByUsername</code></td></tr>
+</table>
+
+<div class="tip">
+  这就是 Spring Data JPA 最强大的特性：<strong>约定优于配置</strong>。方法名写对了，SQL 就自动生成。只有复杂查询才需要手写 <code>@Query</code>。
+</div>
+
+<hr>
+
+<!-- ==================== S7 ==================== -->
+<h2 id="s7"><span class="step">7</span>创建 Service —— 业务逻辑层</h2>
+
+<p>
+  <strong>Service = 业务逻辑层。</strong>
+  它是 Controller 和 Repository 之间的桥梁：
+  Controller 负责接收 HTTP 请求，Service 负责处理业务逻辑，Repository 负责和数据库打交道。
+</p>
+<p>
+  <strong>为什么需要 Service？</strong> 如果不分层，Controller 里既要处理 HTTP 又要写业务逻辑又要查数据库——代码会变成一坨。分层让每一层职责清晰、可测试、可替换。
+</p>
+
+<p>创建包 <code>com.example.demo.dto</code>，先定义请求和响应的 DTO：</p>
+
+<p class="file-path">src/main/java/com/example/demo/dto/CreateUserRequest.java</p>
+<pre><code><span class="kw">package</span> com.example.demo.dto;
+
+<span class="kw">import</span> lombok.Data;
+
+<span class="an">@Data</span>
+<span class="kw">public class</span> CreateUserRequest {
+    <span class="kw">private</span> String username;
+    <span class="kw">private</span> String email;
+    <span class="kw">private</span> String phoneNumber;
+    <span class="kw">private</span> Integer age;
+}</code></pre>
+
+<p class="file-path">src/main/java/com/example/demo/dto/UpdateUserRequest.java</p>
+<pre><code><span class="kw">package</span> com.example.demo.dto;
+
+<span class="kw">import</span> lombok.Data;
+
+<span class="an">@Data</span>
+<span class="kw">public class</span> UpdateUserRequest {
+    <span class="kw">private</span> String username;
+    <span class="kw">private</span> String email;
+    <span class="kw">private</span> String phoneNumber;
+    <span class="kw">private</span> Integer age;
+}</code></pre>
+
+<p class="file-path">src/main/java/com/example/demo/dto/UserResponse.java</p>
+<pre><code><span class="kw">package</span> com.example.demo.dto;
+
+<span class="kw">import</span> com.example.demo.entity.User;
+<span class="kw">import</span> lombok.Builder;
+<span class="kw">import</span> lombok.Data;
+<span class="kw">import</span> java.time.LocalDateTime;
+
+<span class="an">@Data</span>
+<span class="an">@Builder</span>
+<span class="kw">public class</span> UserResponse {
+    <span class="kw">private</span> Long id;
+    <span class="kw">private</span> String username;
+    <span class="kw">private</span> String email;
+    <span class="kw">private</span> String phoneNumber;
+    <span class="kw">private</span> Integer age;
+    <span class="kw">private</span> LocalDateTime createdAt;
+    <span class="kw">private</span> LocalDateTime updatedAt;
+
+    <span class="cm">// Entity → Response DTO 的转换方法</span>
+    <span class="kw">public static</span> UserResponse <span class="fn">fromEntity</span>(User user) {
+        <span class="kw">return</span> UserResponse.<span class="fn">builder</span>()
+            .<span class="fn">id</span>(user.getId())
+            .<span class="fn">username</span>(user.getUsername())
+            .<span class="fn">email</span>(user.getEmail())
+            .<span class="fn">phoneNumber</span>(user.getPhoneNumber())
+            .<span class="fn">age</span>(user.getAge())
+            .<span class="fn">createdAt</span>(user.getCreatedAt())
+            .<span class="fn">updatedAt</span>(user.getUpdatedAt())
+            .<span class="fn">build</span>();
+    }
+}</code></pre>
+
+<div class="tip">
+  <strong>为什么要分开 Request 和 Response DTO？</strong>
+  Entity 是和数据库对应的，不应该直接暴露给前端。
+  Request DTO 只包含前端要提交的字段；Response DTO 只包含前端需要看的字段。
+  这叫做"输入输出分离"，是后端开发的最佳实践。
+</div>
+
+<p>现在创建包 <code>com.example.demo.service</code> 和 <code>UserService.java</code>：</p>
+
+<p class="file-path">src/main/java/com/example/demo/service/UserService.java</p>
+<pre><code><span class="kw">package</span> com.example.demo.service;
+
+<span class="kw">import</span> com.example.demo.dto.*;
+<span class="kw">import</span> com.example.demo.entity.User;
+<span class="kw">import</span> com.example.demo.repository.UserRepository;
+<span class="kw">import</span> lombok.RequiredArgsConstructor;
+<span class="kw">import</span> org.springframework.data.domain.*;
+<span class="kw">import</span> org.springframework.stereotype.Service;
+<span class="kw">import</span> org.springframework.transaction.annotation.Transactional;
+
+<span class="an">@Service</span>
+<span class="an">@RequiredArgsConstructor</span>  <span class="cm">// Lombok：为 final 字段自动生成构造器 → Spring 自动注入</span>
+<span class="kw">public class</span> UserService {
+
+    <span class="kw">private final</span> UserRepository userRepository;
+
+    <span class="cm">// ========== 创建用户 ==========</span>
+    <span class="an">@Transactional</span>
+    <span class="kw">public</span> UserResponse <span class="fn">createUser</span>(CreateUserRequest request) {
+        <span class="cm">// 检查用户名和邮箱唯一性</span>
+        <span class="kw">if</span> (userRepository.<span class="fn">existsByUsername</span>(request.getUsername())) {
+            <span class="kw">throw new</span> RuntimeException(<span class="str">"用户名已存在："</span> + request.getUsername());
+        }
+        <span class="kw">if</span> (userRepository.<span class="fn">existsByEmail</span>(request.getEmail())) {
+            <span class="kw">throw new</span> RuntimeException(<span class="str">"邮箱已存在："</span> + request.getEmail());
+        }
+
+        <span class="cm">// DTO → Entity</span>
+        User user = <span class="kw">new</span> User();
+        user.<span class="fn">setUsername</span>(request.getUsername());
+        user.<span class="fn">setEmail</span>(request.getEmail());
+        user.<span class="fn">setPhoneNumber</span>(request.getPhoneNumber());
+        user.<span class="fn">setAge</span>(request.getAge());
+
+        <span class="cm">// 保存到数据库（@PrePersist 会自动设创建时间）</span>
+        User savedUser = userRepository.<span class="fn">save</span>(user);
+
+        <span class="cm">// Entity → Response DTO</span>
+        <span class="kw">return</span> UserResponse.<span class="fn">fromEntity</span>(savedUser);
+    }
+
+    <span class="cm">// ========== 查询单个用户 ==========</span>
+    <span class="kw">public</span> UserResponse <span class="fn">getUserById</span>(Long id) {
+        User user = userRepository.<span class="fn">findById</span>(id)
+            .<span class="fn">orElseThrow</span>(() -> <span class="kw">new</span> RuntimeException(<span class="str">"用户不存在，id："</span> + id));
+        <span class="kw">return</span> UserResponse.<span class="fn">fromEntity</span>(user);
+    }
+
+    <span class="cm">// ========== 分页查询 ==========</span>
+    <span class="kw">public</span> Page&lt;UserResponse&gt; <span class="fn">getAllUsers</span>(<span class="kw">int</span> page, <span class="kw">int</span> size) {
+        Pageable pageable = PageRequest.<span class="fn">of</span>(page, size, Sort.<span class="fn">by</span>(<span class="str">"createdAt"</span>).<span class="fn">descending</span>());
+        <span class="kw">return</span> userRepository.<span class="fn">findAll</span>(pageable)
+            .<span class="fn">map</span>(UserResponse::fromEntity);
+    }
+
+    <span class="cm">// ========== 更新用户 ==========</span>
+    <span class="an">@Transactional</span>
+    <span class="kw">public</span> UserResponse <span class="fn">updateUser</span>(Long id, UpdateUserRequest request) {
+        User user = userRepository.<span class="fn">findById</span>(id)
+            .<span class="fn">orElseThrow</span>(() -> <span class="kw">new</span> RuntimeException(<span class="str">"用户不存在，id："</span> + id));
+
+        <span class="cm">// 只更新非空字段</span>
+        <span class="kw">if</span> (request.getUsername() != <span class="kw">null</span>) user.<span class="fn">setUsername</span>(request.getUsername());
+        <span class="kw">if</span> (request.getEmail() != <span class="kw">null</span>) user.<span class="fn">setEmail</span>(request.getEmail());
+        <span class="kw">if</span> (request.getPhoneNumber() != <span class="kw">null</span>) user.<span class="fn">setPhoneNumber</span>(request.getPhoneNumber());
+        <span class="kw">if</span> (request.getAge() != <span class="kw">null</span>) user.<span class="fn">setAge</span>(request.getAge());
+
+        <span class="cm">// save() 方法：如果对象有 id 且数据库中已存在，就是 UPDATE；否则是 INSERT</span>
+        <span class="cm">// @PreUpdate 会自动刷新 updatedAt</span>
+        User savedUser = userRepository.<span class="fn">save</span>(user);
+        <span class="kw">return</span> UserResponse.<span class="fn">fromEntity</span>(savedUser);
+    }
+
+    <span class="cm">// ========== 删除用户 ==========</span>
+    <span class="an">@Transactional</span>
+    <span class="kw">public void</span> <span class="fn">deleteUser</span>(Long id) {
+        <span class="kw">if</span> (!userRepository.<span class="fn">existsById</span>(id)) {
+            <span class="kw">throw new</span> RuntimeException(<span class="str">"用户不存在，id："</span> + id);
+        }
+        userRepository.<span class="fn">deleteById</span>(id);
+    }
+}</code></pre>
+
+<h3>关键注解说明</h3>
+<table>
+  <tr><th>注解</th><th>作用</th></tr>
+  <tr><td><code>@Service</code></td><td>标记为 Service Bean，Spring 会自动扫描并管理它</td></tr>
+  <tr><td><code>@RequiredArgsConstructor</code></td><td>Lombok：为 <code>final</code> 字段生成构造器。Spring 会自动注入构造器参数——这叫<strong>构造器注入</strong>，是目前推荐的做法</td></tr>
+  <tr><td><code>@Transactional</code></td><td>方法内的数据库操作在同一个事务中执行。要么全部成功，要么全部回滚</td></tr>
+</table>
+
+<div class="tip">
+  <strong>关于依赖注入（DI）</strong>：注意 <code>UserRepository</code> 是一个 <code>interface</code>，我们并没有写它的实现类。
+  Spring Data JPA 在运行时<strong>自动生成了代理实现类</strong>并注入进来。这就是 Spring 的核心能力——控制反转（IoC）。
+</div>
+
+<div class="checkpoint">
+  到这里，Service 层已经写好了。你能解释 Controller → Service → Repository 三层各自的职责吗？<br>
+  （Controller：接收请求，返回响应；Service：业务逻辑；Repository：数据库操作）
+</div>
+
+<hr>
+
+<!-- ==================== S8 ==================== -->
+<h2 id="s8"><span class="step">8</span>统一的返回格式</h2>
+
+<p>
+  前端调用 API 时，期望得到的 JSON 格式应该是统一的。不能有的接口返回纯数据，有的返回带 success 字段的，有的返回字符串。
+  我们来定义一个统一的响应包装类 <code>R&lt;T&gt;</code>：
+</p>
+
+<p>创建包 <code>com.example.demo.common</code>，然后创建 <code>R.java</code>：</p>
+
+<p class="file-path">src/main/java/com/example/demo/common/R.java</p>
+<pre><code><span class="kw">package</span> com.example.demo.common;
+
+<span class="kw">import</span> lombok.Data;
+
+<span class="an">@Data</span>
+<span class="kw">public class</span> R&lt;T&gt; {
+    <span class="kw">private int</span> code;      <span class="cm">// 200 成功，4xx 客户端错误，5xx 服务端错误</span>
+    <span class="kw">private</span> String message;  <span class="cm">// 提示信息</span>
+    <span class="kw">private</span> T data;         <span class="cm">// 泛型数据（可以是 UserResponse、List、Page 等任意类型）</span>
+
+    <span class="kw">private</span> <span class="fn">R</span>(<span class="kw">int</span> code, String message, T data) {
+        <span class="kw">this</span>.code = code;
+        <span class="kw">this</span>.message = message;
+        <span class="kw">this</span>.data = data;
+    }
+
+    <span class="cm">// ========== 快捷静态工厂方法 ==========</span>
+    <span class="kw">public static</span> &lt;T&gt; R&lt;T&gt; <span class="fn">ok</span>(T data) {
+        <span class="kw">return new</span> R&lt;&gt;(200, <span class="str">"success"</span>, data);
+    }
+
+    <span class="kw">public static</span> &lt;T&gt; R&lt;T&gt; <span class="fn">ok</span>() {
+        <span class="kw">return new</span> R&lt;&gt;(200, <span class="str">"success"</span>, <span class="kw">null</span>);
+    }
+
+    <span class="kw">public static</span> &lt;T&gt; R&lt;T&gt; <span class="fn">fail</span>(<span class="kw">int</span> code, String message) {
+        <span class="kw">return new</span> R&lt;&gt;(code, message, <span class="kw">null</span>);
+    }
+}</code></pre>
+
+<p>所有接口的返回格式现在统一为：</p>
+<pre><code>{
+  <span class="str">"code"</span>: 200,
+  <span class="str">"message"</span>: <span class="str">"success"</span>,
+  <span class="str">"data"</span>: { ... }   <span class="cm">// 实际数据</span>
+}</code></pre>
+
+<div class="tip">
+  这个模式在后端工程里叫 <strong>统一响应体（Unified Response）</strong>，前端可以统一判断 <code>code === 200</code> 来决定是否成功，
+  不用每个接口都写不同的判断逻辑。
+</div>
+
+<hr>
+
+<!-- ==================== S9 ==================== -->
+<h2 id="s9"><span class="step">9</span>创建 Controller —— REST API 接口</h2>
+
+<p>
+  <strong>Controller = 前端的"路由文件"。</strong>
+  它接收 HTTP 请求，调用 Service，把结果包装成统一格式返回。
+</p>
+
+<p>创建包 <code>com.example.demo.controller</code>，然后创建 <code>UserController.java</code>：</p>
+
+<p class="file-path">src/main/java/com/example/demo/controller/UserController.java</p>
+<pre><code><span class="kw">package</span> com.example.demo.controller;
+
+<span class="kw">import</span> com.example.demo.common.R;
+<span class="kw">import</span> com.example.demo.dto.*;
+<span class="kw">import</span> com.example.demo.service.UserService;
+<span class="kw">import</span> lombok.RequiredArgsConstructor;
+<span class="kw">import</span> org.springframework.data.domain.Page;
+<span class="kw">import</span> org.springframework.web.bind.annotation.*;
+
+<span class="an">@RestController</span>                          <span class="cm">// = @Controller + @ResponseBody（返回值自动序列化为 JSON）</span>
+<span class="an">@RequestMapping</span>(<span class="str">"/users"</span>)             <span class="cm">// 统一前缀：所有接口都在 /users 下</span>
+<span class="an">@RequiredArgsConstructor</span>
+<span class="kw">public class</span> UserController {
+
+    <span class="kw">private final</span> UserService userService;
+
+    <span class="cm">// ========== POST /users —— 创建用户 ==========</span>
+    <span class="an">@PostMapping</span>
+    <span class="kw">public</span> R&lt;UserResponse&gt; <span class="fn">create</span>(<span class="an">@RequestBody</span> CreateUserRequest request) {
+        UserResponse response = userService.<span class="fn">createUser</span>(request);
+        <span class="kw">return</span> R.<span class="fn">ok</span>(response);
+    }
+
+    <span class="cm">// ========== GET /users/{id} —— 查询用户详情 ==========</span>
+    <span class="an">@GetMapping</span>(<span class="str">"/{id}"</span>)
+    <span class="kw">public</span> R&lt;UserResponse&gt; <span class="fn">getById</span>(<span class="an">@PathVariable</span> Long id) {
+        UserResponse response = userService.<span class="fn">getUserById</span>(id);
+        <span class="kw">return</span> R.<span class="fn">ok</span>(response);
+    }
+
+    <span class="cm">// ========== GET /users —— 分页列表 ==========</span>
+    <span class="an">@GetMapping</span>
+    <span class="kw">public</span> R&lt;Page&lt;UserResponse&gt;&gt; <span class="fn">list</span>(
+            <span class="an">@RequestParam</span>(defaultValue = <span class="str">"0"</span>) <span class="kw">int</span> page,
+            <span class="an">@RequestParam</span>(defaultValue = <span class="str">"10"</span>) <span class="kw">int</span> size) {
+        Page&lt;UserResponse&gt; responses = userService.<span class="fn">getAllUsers</span>(page, size);
+        <span class="kw">return</span> R.<span class="fn">ok</span>(responses);
+    }
+
+    <span class="cm">// ========== PUT /users/{id} —— 更新用户 ==========</span>
+    <span class="an">@PutMapping</span>(<span class="str">"/{id}"</span>)
+    <span class="kw">public</span> R&lt;UserResponse&gt; <span class="fn">update</span>(
+            <span class="an">@PathVariable</span> Long id,
+            <span class="an">@RequestBody</span> UpdateUserRequest request) {
+        UserResponse response = userService.<span class="fn">updateUser</span>(id, request);
+        <span class="kw">return</span> R.<span class="fn">ok</span>(response);
+    }
+
+    <span class="cm">// ========== DELETE /users/{id} —— 删除用户 ==========</span>
+    <span class="an">@DeleteMapping</span>(<span class="str">"/{id}"</span>)
+    <span class="kw">public</span> R&lt;Void&gt; <span class="fn">delete</span>(<span class="an">@PathVariable</span> Long id) {
+        userService.<span class="fn">deleteUser</span>(id);
+        <span class="kw">return</span> R.<span class="fn">ok</span>();
+    }
+}</code></pre>
+
+<h3>Controller 注解速查</h3>
+<table>
+  <tr><th>注解</th><th>对应的 HTTP 方法</th><th>类比前端</th></tr>
+  <tr><td><code>@GetMapping</code></td><td>GET（查询）</td><td><code>router.get('/users', ...)</code></td></tr>
+  <tr><td><code>@PostMapping</code></td><td>POST（新增）</td><td><code>router.post('/users', ...)</code></td></tr>
+  <tr><td><code>@PutMapping</code></td><td>PUT（全量更新）</td><td><code>router.put('/users/:id', ...)</code></td></tr>
+  <tr><td><code>@DeleteMapping</code></td><td>DELETE（删除）</td><td><code>router.delete('/users/:id', ...)</code></td></tr>
+</table>
+
+<table>
+  <tr><th>参数注解</th><th>来源</th><th>示例</th></tr>
+  <tr><td><code>@PathVariable</code></td><td>URL 路径参数</td><td><code>/users/{id}</code> → <code>@PathVariable Long id</code></td></tr>
+  <tr><td><code>@RequestParam</code></td><td>URL 查询参数</td><td><code>/users?page=0&size=10</code></td></tr>
+  <tr><td><code>@RequestBody</code></td><td>HTTP Body（JSON）</td><td><code>{"username":"zhangsan"}</code> → Java 对象</td></tr>
+</table>
+
+<div class="checkpoint">
+  到这里，5 个 CRUD 接口已经全部写好了。启动项目后，你就能用 Postman 或 curl 来调用它们了。
+</div>
+
+<hr>
+
+<!-- ==================== S10 ==================== -->
+<h2 id="s10"><span class="step">10</span>统一异常处理</h2>
+
+<p>
+  现在的代码里用 <code>throw new RuntimeException("...")</code> 来抛异常。
+  如果不做处理，前端会收到一个 500 错误和一段丑陋的堆栈信息。
+  我们用 <code>@RestControllerAdvice</code> 来统一拦截异常，返回友好的 JSON。
+</p>
+
+<p>在 <code>com.example.demo.common</code> 包内创建异常类：</p>
+
+<p class="file-path">src/main/java/com/example/demo/common/BusinessException.java</p>
+<pre><code><span class="kw">package</span> com.example.demo.common;
+
+<span class="kw">import</span> lombok.Getter;
+
+<span class="an">@Getter</span>
+<span class="kw">public class</span> BusinessException <span class="kw">extends</span> RuntimeException {
+    <span class="kw">private final int</span> code;
+
+    <span class="kw">public</span> <span class="fn">BusinessException</span>(<span class="kw">int</span> code, String message) {
+        <span class="kw">super</span>(message);
+        <span class="kw">this</span>.code = code;
+    }
+}</code></pre>
+
+<p>在 <code>com.example.demo.common</code> 包内创建全局异常处理器：</p>
+
+<p class="file-path">src/main/java/com/example/demo/common/GlobalExceptionHandler.java</p>
+<pre><code><span class="kw">package</span> com.example.demo.common;
+
+<span class="kw">import</span> lombok.extern.slf4j.Slf4j;
+<span class="kw">import</span> org.springframework.web.bind.annotation.*;
+
+<span class="an">@Slf4j</span>                               <span class="cm">// Lombok：自动生成 log 对象</span>
+<span class="an">@RestControllerAdvice</span>               <span class="cm">// 全局异常拦截器</span>
+<span class="kw">public class</span> GlobalExceptionHandler {
+
+    <span class="cm">// 拦截自定义 BusinessException</span>
+    <span class="an">@ExceptionHandler</span>(BusinessException.class)
+    <span class="kw">public</span> R&lt;Void&gt; <span class="fn">handleBusinessException</span>(BusinessException e) {
+        <span class="kw">return</span> R.<span class="fn">fail</span>(e.getCode(), e.getMessage());
+    }
+
+    <span class="cm">// 兜底：拦截所有未处理的异常</span>
+    <span class="an">@ExceptionHandler</span>(Exception.class)
+    <span class="kw">public</span> R&lt;Void&gt; <span class="fn">handleException</span>(Exception e) {
+        log.<span class="fn">error</span>(<span class="str">"未处理异常："</span>, e);
+        <span class="kw">return</span> R.<span class="fn">fail</span>(500, <span class="str">"服务器内部错误："</span> + e.getMessage());
+    }
+}</code></pre>
+
+<p>然后修改 <code>UserService</code>，把 <code>RuntimeException</code> 替换为 <code>BusinessException</code>：</p>
+
+<pre><code><span class="cm">// 之前：</span>
+<span class="kw">throw new</span> RuntimeException(<span class="str">"用户名已存在："</span> + request.getUsername());
+
+<span class="cm">// 改成：</span>
+<span class="kw">throw new</span> BusinessException(400, <span class="str">"用户名已存在："</span> + request.getUsername());</code></pre>
+
+<div class="warning">
+  <code>@RestControllerAdvice</code> 只拦截进入 Controller 之后抛出的异常。
+  如果在 Filter 或 Interceptor 里（Controller 之前）抛出异常，需要用其他方式处理。
+</div>
+
+<hr>
+
+<!-- ==================== S11 ==================== -->
+<h2 id="s11"><span class="step">11</span>参数校验</h2>
+
+<p>
+  目前 Controller 不会校验前端传来的参数是否合法——如果用户不填 username，Service 会报错，
+  但错误信息不够清晰。用 <code>@Valid</code> + Bean Validation 注解可以在请求进来时就校验。
+</p>
+
+<h3>11.1 给 DTO 加校验注解</h3>
+
+<p class="file-path">src/main/java/com/example/demo/dto/CreateUserRequest.java（修改后）</p>
+<pre><code><span class="kw">package</span> com.example.demo.dto;
+
+<span class="kw">import</span> jakarta.validation.constraints.*;
+<span class="kw">import</span> lombok.Data;
+
+<span class="an">@Data</span>
+<span class="kw">public class</span> CreateUserRequest {
+
+    <span class="an">@NotBlank</span>(message = <span class="str">"用户名不能为空"</span>)
+    <span class="an">@Size</span>(min = 2, max = 50, message = <span class="str">"用户名长度需在 2-50 之间"</span>)
+    <span class="kw">private</span> String username;
+
+    <span class="an">@NotBlank</span>(message = <span class="str">"邮箱不能为空"</span>)
+    <span class="an">@Email</span>(message = <span class="str">"邮箱格式不正确"</span>)
+    <span class="kw">private</span> String email;
+
+    <span class="an">@Pattern</span>(regexp = <span class="str">"^1[3-9]\\d{9}$"</span>, message = <span class="str">"手机号格式不正确"</span>)
+    <span class="kw">private</span> String phoneNumber;
+
+    <span class="an">@NotNull</span>(message = <span class="str">"年龄不能为空"</span>)
+    <span class="an">@Min</span>(value = 0, message = <span class="str">"年龄不能为负数"</span>)
+    <span class="an">@Max</span>(value = 150, message = <span class="str">"年龄不能超过150"</span>)
+    <span class="kw">private</span> Integer age;
+}</code></pre>
+
+<h3>11.2 Controller 里加 <code>@Valid</code></h3>
+<pre><code><span class="an">@PostMapping</span>
+<span class="kw">public</span> R&lt;UserResponse&gt; <span class="fn">create</span>(<span class="an">@Valid</span> <span class="an">@RequestBody</span> CreateUserRequest request) {
+    <span class="cm">// @Valid 会触发 DTO 上的校验注解</span>
+    ...
+}</code></pre>
+
+<h3>11.3 全局异常处理器里捕获校验失败异常</h3>
+
+<p>在 <code>GlobalExceptionHandler</code> 里增加：</p>
+
+<pre><code><span class="cm">// 处理 @Valid 校验失败</span>
+<span class="an">@ExceptionHandler</span>(MethodArgumentNotValidException.class)
+<span class="kw">public</span> R&lt;Void&gt; <span class="fn">handleValidation</span>(MethodArgumentNotValidException e) {
+    String message = e.getBindingResult().getFieldErrors()
+        .stream()
+        .map(fieldError -> fieldError.getField() + <span class="str">": "</span> + fieldError.getDefaultMessage())
+        .collect(Collectors.<span class="fn">joining</span>(<span class="str">", "</span>));
+    <span class="kw">return</span> R.<span class="fn">fail</span>(400, message);
+}</code></pre>
+
+<h3>常用校验注解速查</h3>
+<table>
+  <tr><th>注解</th><th>说明</th></tr>
+  <tr><td><code>@NotNull</code></td><td>不能是 null</td></tr>
+  <tr><td><code>@NotBlank</code></td><td>不能是 null 且不能是空字符串（用于 String）</td></tr>
+  <tr><td><code>@NotEmpty</code></td><td>不能是 null 且 size &gt; 0（用于集合/String）</td></tr>
+  <tr><td><code>@Size(min, max)</code></td><td>字符串长度或集合大小</td></tr>
+  <tr><td><code>@Min / @Max</code></td><td>数值范围</td></tr>
+  <tr><td><code>@Email</code></td><td>邮箱格式</td></tr>
+  <tr><td><code>@Pattern</code></td><td>正则匹配</td></tr>
+</table>
+
+<hr>
+
+<!-- ==================== S12 ==================== -->
+<h2 id="s12"><span class="step">12</span>分页查询</h2>
+
+<p>
+  分页查询已经在 <code>UserService.getAllUsers()</code> 里实现了，这里回顾一下关键代码：
+</p>
+
+<pre><code><span class="kw">public</span> Page&lt;UserResponse&gt; <span class="fn">getAllUsers</span>(<span class="kw">int</span> page, <span class="kw">int</span> size) {
+    <span class="cm">// PageRequest.of(页码, 每页大小, 排序规则)</span>
+    Pageable pageable = PageRequest.<span class="fn">of</span>(page, size, Sort.<span class="fn">by</span>(<span class="str">"createdAt"</span>).<span class="fn">descending</span>());
+    <span class="kw">return</span> userRepository.<span class="fn">findAll</span>(pageable)
+        .<span class="fn">map</span>(UserResponse::fromEntity);  <span class="cm">// 把 Entity 的 Page 转成 Response 的 Page</span>
+}</code></pre>
+
+<p>返回的 JSON 结构类似：</p>
+<pre><code>{
+  <span class="str">"code"</span>: 200,
+  <span class="str">"message"</span>: <span class="str">"success"</span>,
+  <span class="str">"data"</span>: {
+    <span class="str">"content"</span>: [ ... ],       <span class="cm">// 当前页数据</span>
+    <span class="str">"totalElements"</span>: 100,     <span class="cm">// 总记录数</span>
+    <span class="str">"totalPages"</span>: 10,         <span class="cm">// 总页数</span>
+    <span class="str">"number"</span>: 0,              <span class="cm">// 当前页码（从 0 开始）</span>
+    <span class="str">"size"</span>: 10                <span class="cm">// 每页大小</span>
+  }
+}</code></pre>
+
+<div class="tip">
+  <code>.map(UserResponse::fromEntity)</code> 用到了 Java 的<strong>方法引用</strong>语法，等价于 <code>.map(entity -> UserResponse.fromEntity(entity))</code>。
+  这是 Java 8+ 的函数式特性，和 JS 的 <code>array.map(fn)</code> 一模一样。
+</div>
+
+<hr>
+
+<!-- ==================== S13 ==================== -->
+<h2 id="s13"><span class="step">13</span>启动 &amp; 测试</h2>
+
+<h3>13.1 启动项目</h3>
+<p>在 IDEA 中打开 <code>DemoApplication.java</code>，点击 <code>main</code> 方法左边的绿色 ▶，或者终端运行：</p>
+<pre><code>mvn spring-boot:run</code></pre>
+<p>看到日志 <code>Started DemoApplication in X.XXX seconds</code> 就说明启动成功了。</p>
+
+<h3>13.2 用 curl 测试所有接口</h3>
+
+<h4>① 创建用户</h4>
+<pre><code>curl -X POST http://localhost:8080/users \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "username": "zhangsan",
+    "email": "zhangsan@example.com",
+    "phoneNumber": "13800138000",
+    "age": 25
+  }'</span></code></pre>
+
+<h4>② 查询用户详情</h4>
+<pre><code>curl http://localhost:8080/users/1</code></pre>
+
+<h4>③ 分页查询</h4>
+<pre><code>curl <span class="str">"http://localhost:8080/users?page=0&size=10"</span></code></pre>
+
+<h4>④ 更新用户</h4>
+<pre><code>curl -X PUT http://localhost:8080/users/1 \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"age": 26}'</span></code></pre>
+
+<h4>⑤ 删除用户</h4>
+<pre><code>curl -X DELETE http://localhost:8080/users/1</code></pre>
+
+<h4>⑥ 测试参数校验</h4>
+<pre><code>curl -X POST http://localhost:8080/users \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"username": "", "email": "bad-email", "age": -1}'</span>
+
+<span class="cm"># 应该返回 400 + 校验失败详情</span></code></pre>
+
+<div class="checkpoint">
+  5 个接口全部测试通过：创建 → 查询 → 列表 → 更新 → 删除，验证返回 JSON 格式统一、校验生效、异常信息友好。
+</div>
+
+<hr>
+
+<!-- ==================== S14 ==================== -->
+<h2 id="s14"><span class="step">14</span>完整项目结构</h2>
+
+<p>完成以上所有步骤后，你的项目结构长这样：</p>
+
+<pre><code>demo/
+├── pom.xml
+└── src/main/
+    ├── java/com/example/demo/
+    │   ├── DemoApplication.java              <span class="cm">← 启动入口</span>
+    │   ├── common/
+    │   │   ├── R.java                         <span class="cm">← 统一响应包装</span>
+    │   │   ├── BusinessException.java         <span class="cm">← 业务异常</span>
+    │   │   └── GlobalExceptionHandler.java    <span class="cm">← 全局异常处理</span>
+    │   ├── controller/
+    │   │   └── UserController.java            <span class="cm">← REST API 接口</span>
+    │   ├── dto/
+    │   │   ├── CreateUserRequest.java         <span class="cm">← 新增请求</span>
+    │   │   ├── UpdateUserRequest.java         <span class="cm">← 更新请求</span>
+    │   │   └── UserResponse.java              <span class="cm">← 响应</span>
+    │   ├── entity/
+    │   │   └── User.java                      <span class="cm">← 数据库实体</span>
+    │   ├── repository/
+    │   │   └── UserRepository.java            <span class="cm">← 数据访问接口</span>
+    │   └── service/
+    │       └── UserService.java               <span class="cm">← 业务逻辑</span>
+    └── resources/
+        └── application.yml                    <span class="cm">← 数据库/服务器配置</span></code></pre>
+
+<p>
+  这就是一个标准 Spring Boot 项目的<strong>三层分层结构</strong>：
+</p>
+<ul>
+  <li><strong>controller/</strong> — 接收请求、返回响应（不写逻辑）</li>
+  <li><strong>service/</strong> — 业务逻辑（不知道 HTTP 的存在）</li>
+  <li><strong>repository/</strong> — 数据库操作（一个接口 = SQL 语句）</li>
+  <li><strong>entity/</strong> — 数据库表对应的 Java 类</li>
+  <li><strong>dto/</strong> — 前后端传输的数据对象</li>
+  <li><strong>common/</strong> — 通用工具（异常、响应格式等）</li>
+</ul>
+
+<hr>
+
+<!-- ==================== S15 ==================== -->
+<h2 id="s15"><span class="step">15</span>常见问题 FAQ</h2>
+
+<h4>Q：启动报错 "Access denied for user 'root'@'localhost'"</h4>
+<p><strong>A：</strong>MySQL 密码不对。检查 <code>application.yml</code> 里的 <code>password</code> 是否正确。</p>
+
+<h4>Q：启动报错 "Unknown database 'learning'"</h4>
+<p><strong>A：</strong>忘了创建数据库。进 MySQL 执行 <code>CREATE DATABASE learning DEFAULT CHARACTER SET utf8mb4;</code></p>
+
+<h4>Q：启动报错 "Table 'users' doesn't exist"</h4>
+<p><strong>A：</strong>检查 <code>ddl-auto</code> 是否设为 <code>update</code>。启动后 JPA 会自动建表。</p>
+
+<h4>Q：Lombok 注解全部报红</h4>
+<p><strong>A：</strong>IDEA 没装 Lombok 插件。Preferences → Plugins → 搜 "Lombok" → Install。并且 Settings → Build → Compiler → Annotation Processors → 勾选 "Enable annotation processing"。</p>
+
+<h4>Q：Entity 里加了字段但数据库表不更新</h4>
+<p><strong>A：</strong><code>ddl-auto: update</code> 只能加新字段，不会删字段、不会改字段类型。如果改动较大，把表删了让 JPA 重新建，或者以后用 Flyway 管理数据库变更。</p>
+
+<h4>Q：<code>mvn spring-boot:run</code> 太慢</h4>
+<p><strong>A：</strong>第一次需要下载所有依赖（~200MB），之后就好了。在 IDEA 里点绿色 ▶ 启动更快（热加载）。</p>
+
+<hr>
+
+<h2>🎉 恭喜你！</h2>
+
+<p>
+  如果你跟着教程一步步做完，现在你应该能做到：
+</p>
+<ul>
+  <li>✅ 用 Spring Initializr 创建 Spring Boot 3.4 项目</li>
+  <li>✅ 理解 Controller → Service → Repository 三层分层</li>
+  <li>✅ 用 JPA Entity 映射数据库表</li>
+  <li>✅ 用 JpaRepository 零 SQL 操作数据库</li>
+  <li>✅ 写出标准的 RESTful CRUD 接口</li>
+  <li>✅ 统一返回格式 + 全局异常处理 + 参数校验</li>
+  <li>✅ 实现分页查询</li>
+</ul>
+
+<p>
+  <strong>这就是后端开发的核心能力——CRUD。</strong>
+  你目前项目里的 80% 后端代码本质上都是 CRUD 的变体。掌握了 CRUD，你就拿到了进入后端世界的通行证。
+</p>
+
+<div class="tip">
+  <strong>下一步建议：</strong>
+  <ol>
+    <li>把这个项目的代码全部删掉，自己<strong>从头重写一遍</strong>（不看教程），确保真正理解</li>
+    <li>试着给 <code>User</code> 再加一个字段（如 <code>address</code>），修改全链路（Entity → DTO → Service → Controller），体会改动的涟漪</li>
+    <li>完成后再进入 P1 阶段的学习：Java 深入 + Redis 缓存 + Nacos 配置中心</li>
+  </ol>
+</div>
+
+<hr>
+
+<p style="text-align: center; color: var(--text-muted); margin-top: 48px;">
+  Made with ❤️ by Multica Helper · dwanda/backend-learning
+</p>
+
+</body>
+</html>
